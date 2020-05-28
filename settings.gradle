@@ -1,0 +1,2 @@
+rootProject.name='SoundService'
+include ':app'
