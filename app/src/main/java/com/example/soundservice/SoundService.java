@@ -18,8 +18,8 @@ public class SoundService {
     private static final String SOUNDSERVICE_TAG = "SOUNDSERVICE_TAG";
     Long currentTime;
 
-    private final static int audioBufferSize = 2048;
-    private final static int samplingRate = 44100;
+    private final static int audioBufferSize = 1024;
+    private final static int samplingRate = 11025;
     private final static int bufferOverlap = 1024; //half of audioBufferSize
     private final static int amountOfMelFilters = 20;
     private final static int amountOfCepstrumCoef = 30;
@@ -37,7 +37,7 @@ public class SoundService {
         AudioDispatcher dispatcher = AudioDispatcherFactory.fromDefaultMicrophone(samplingRate, audioBufferSize, 0);
 
         //some devices do not support 44100Hz sampling rate, and so they throw exceptions
-        if (dispatcher != null){
+        if (dispatcher != null) {
             dispatcher.addAudioProcessor(new AudioProcessor() {
                 //TODO check the threshold
                 float threshold = -70;//dB
@@ -52,12 +52,11 @@ public class SoundService {
 
                     //noise and silence detection
                     //TODO upload to server (noisy state)
-                    if(energy > threshold){
+                    if (energy > threshold) {
                         currentTime = System.currentTimeMillis();
                         Log.i(SOUNDSERVICE_TAG, currentTime.toString() + "Noisy state detected" + "\nENERGY level: " + energy);
 
-                    }
-                    else {
+                    } else {
                         //TODO upload to server (silence state)
                         currentTime = System.currentTimeMillis();
                         Log.i(SOUNDSERVICE_TAG, currentTime.toString() + " Silence detected" + "\nENERGY level: " + energy);
@@ -67,51 +66,50 @@ public class SoundService {
                 }
 
                 @Override
-                public void processingFinished() {}
+                public void processingFinished() {
+                }
 
                 //soundPressureLevel returns dBSPL for a buffer (energy)
-                private double soundPressureLevel(final float[] buffer){
+                private double soundPressureLevel(final float[] buffer) {
                     double power = 0.0D;
-                    for (float element:buffer){
-                        power+=element*element;
+                    for (float element : buffer) {
+                        power += element * element;
                     }
-                    double value = Math.pow(power, 0.5)/buffer.length;
-                    return 20.0*Math.log10(value);
+                    double value = Math.pow(power, 0.5) / buffer.length;
+                    return 20.0 * Math.log10(value);
                 }
 
             });
-        }
-        else {
+        } else {
             Log.e(SOUNDSERVICE_TAG, "extractSignalEnergy: Dispatcher is null");
         }
 
     }
 
 
+    PitchDetectionHandler handler = new PitchDetectionHandler() {
 
-    public void extractPitch(){
+        //pitch is sound frequency (Hz)
+        @Override
+        public void handlePitch(PitchDetectionResult pitchDetectionResult,
+                                AudioEvent audioEvent) {
 
-        //In extractPitch() first a handler is created which simply prints the detected pitch
-        // The AudioDispatcher is attached to the default microphone and has a buffer size of 2048
-        // For pitch detection buffer size of 2048 samples is reasonable
-        // An audio processor that detects pitch is added to the AudioDispatcher
-        // The handler is used there as well.
+            //TODO upload to server (pitch)
+            currentTime = System.currentTimeMillis();
+            Log.i(SOUNDSERVICE_TAG, currentTime.toString() + " Pitch: " + pitchDetectionResult.getPitch());
+        }
+    };
 
+    public void extractPitch() {
 
+//        In extractPitch() first a handler is created which simply prints the detected pitch
+//         The AudioDispatcher is attached to the default microphone and has a buffer size of 2048
+//         For pitch detection buffer size of 2048 samples is reasonable
+//         An audio processor that detects pitch is added to the AudioDispatcher
+//         The handler is used there as well.
 
-        PitchDetectionHandler handler = new PitchDetectionHandler() {
+        AudioDispatcher dispatcher = AudioDispatcherFactory.fromDefaultMicrophone(samplingRate, audioBufferSize, 512);
 
-            //pitch is sound frequency (Hz)
-            @Override
-            public void handlePitch(PitchDetectionResult pitchDetectionResult,
-                                    AudioEvent audioEvent) {
-
-                //TODO upload to server (pitch)
-                currentTime = System.currentTimeMillis();
-                Log.i(SOUNDSERVICE_TAG, currentTime.toString() + " Pitch: " + pitchDetectionResult.getPitch());
-            }
-        };
-        AudioDispatcher dispatcher = AudioDispatcherFactory.fromDefaultMicrophone(samplingRate, audioBufferSize, 0);
         dispatcher.addAudioProcessor(new PitchProcessor(PitchProcessor.PitchEstimationAlgorithm.YIN, samplingRate, audioBufferSize, handler));
         dispatcher.run(); //starts a new thread
     }
@@ -142,19 +140,17 @@ public class SoundService {
                 }
             });
             dispatcher.run();// starts a new thread
-        } else{
+        } else {
             Log.e(SOUNDSERVICE_TAG, "extractMFCC: Dispatcher is null");
         }
     }
 
-    public void calculateJitter(){
+    public void calculateJitter() {
 
         // Jitter is measured in seconds
         // Jitter is the mean absolute (non-negative) difference in consecutive intervals
         // To calculate Jitter we need to calculate period T = floor(Fs/F0),
         // where Fs is sample rate, F0 is average frequency
-
-
 
 
     }
