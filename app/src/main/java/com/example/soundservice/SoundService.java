@@ -19,8 +19,8 @@ public class SoundService {
     Long currentTime;
 
     private final static int audioBufferSize = 1024;
-    private final static int samplingRate = 11025;
-    private final static int bufferOverlap = 1024; //half of audioBufferSize
+    private final static int samplingRate = 22050;
+    private final static int bufferOverlap = 512; //half of audioBufferSize
     private final static int amountOfMelFilters = 20;
     private final static int amountOfCepstrumCoef = 30;
     private final static float lowerFilterFreq = 133.33f;
@@ -86,20 +86,6 @@ public class SoundService {
 
     }
 
-
-    PitchDetectionHandler handler = new PitchDetectionHandler() {
-
-        //pitch is sound frequency (Hz)
-        @Override
-        public void handlePitch(PitchDetectionResult pitchDetectionResult,
-                                AudioEvent audioEvent) {
-
-            //TODO upload to server (pitch)
-            currentTime = System.currentTimeMillis();
-            Log.i(SOUNDSERVICE_TAG, currentTime.toString() + " Pitch: " + pitchDetectionResult.getPitch());
-        }
-    };
-
     public void extractPitch() {
 
 //        In extractPitch() first a handler is created which simply prints the detected pitch
@@ -108,12 +94,23 @@ public class SoundService {
 //         An audio processor that detects pitch is added to the AudioDispatcher
 //         The handler is used there as well.
 
-        AudioDispatcher dispatcher = AudioDispatcherFactory.fromDefaultMicrophone(samplingRate, audioBufferSize, 512);
+        PitchDetectionHandler handler = new PitchDetectionHandler() {
 
-        dispatcher.addAudioProcessor(new PitchProcessor(PitchProcessor.PitchEstimationAlgorithm.YIN, samplingRate, audioBufferSize, handler));
+            //pitch is sound frequency (Hz)
+            @Override
+            public void handlePitch(PitchDetectionResult pitchDetectionResult,
+                                    AudioEvent audioEvent) {
+
+                //TODO upload to server (pitch)
+                currentTime = System.currentTimeMillis();
+                Log.i(SOUNDSERVICE_TAG, currentTime.toString() + " Pitch: " + pitchDetectionResult.getPitch());
+            }
+        };
+        AudioDispatcher dispatcher = AudioDispatcherFactory.fromDefaultMicrophone(samplingRate, audioBufferSize, bufferOverlap);
+
+        dispatcher.addAudioProcessor(new PitchProcessor(PitchProcessor.PitchEstimationAlgorithm.AMDF, samplingRate, audioBufferSize, handler));
         dispatcher.run(); //starts a new thread
     }
-
 
     public void extractMFCC() {
 
